@@ -1,5 +1,13 @@
-import { serve } from 'https://deno.land/std/http/server.ts'
 import { Application, Router } from 'https://deno.land/x/oak/mod.ts'
+import { createClient } from "https://denopkg.com/chiefbiiko/dynamodb/mod.ts";
+
+const client = createClient({
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: Deno.env.get("AWS_ACCESS_KEY_ID") || 'your_access_key_id',
+    secretAccessKey: Deno.env.get("AWS_SECRET_ACCESS_KEY") || 'your_secret_access_key',
+  },
+});
 
 interface Book {
   id: string
@@ -41,15 +49,36 @@ export const addBook = async ({
   request: any;
   response: any;
 }) => {
-  const body = await request.body();
-  if (!request.hasBody) {
-    response.status = 400;
-    response.body = { msg: 'Invalid payload' };
-    return;
+  const params = {
+    TableName: "flexi-lab",
+    Item: {
+      id: Math.floor(Math.random() * 100000).toString(),
+      name: "Hungry Hunter",
+      genre: "Action",
+      price: 500
+    },
   }
-  const book: Book = body.value;
-  books.push(book);
-  response.body = { msg: 'Book added successfully' };
+
+  await client.putItem(params, (err: any, data: any) => {
+    if (err) {
+      console.log(err);
+      response.status = 500;
+      response.body = { msg: 'Error' };
+    } else {
+      console.log(data);
+      response.status = 200;
+      response.body = { msg: 'Success' };
+    }
+  });
+  // const body = await request.body();
+  // if (!request.hasBody) {
+  //   response.status = 400;
+  //   response.body = { msg: 'Invalid payload' };
+  //   return;
+  // }
+  // const book: Book = body.value;
+  // books.push(book);
+  // response.body = { msg: 'Book added successfully' };
 };
 
 export const updateBook = async ({
